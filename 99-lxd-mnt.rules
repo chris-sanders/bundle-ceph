@@ -1,0 +1,15 @@
+# Skip items we don't want to deal with
+ACTION=="changed", GOTO="persistent_storage_end"
+SUBSYSTEM!="block", GOTO="persistent_storage_end"
+KERNEL!="sd*", GOTO="persistent_storage_end"
+ENV{DEVTYPE}!="partition", GOTO="persistent_storage_end"
+
+# Add partitions
+KERNEL=="sd*", ACTION=="add", RUN+="/bin/sh -c '/bin/echo /bin/mknod $env{DEVNAME} b $env{MAJOR} $env{MINOR} >> /root/udev.log 2>&1'"
+KERNEL=="sd*", ACTION=="add", RUN+="/bin/sh -c '/bin/mknod $env{DEVNAME} b $env{MAJOR} $env{MINOR} >> /root/udev.log 2>&1'"
+
+# Remove partitions
+KERNEL=="sd*", ACTION=="remove", RUN+="/bin/sh -c '/bin/echo rm $env{DEVNAME} >> /root/udev.log 2>&1'"
+KERNEL=="sd*", ACTION=="remove", RUN+="/bin/sh -c 'rm $env{DEVNAME} >> /root/udev.log 2>&1'"
+
+LABEL="persistent_storage_end"

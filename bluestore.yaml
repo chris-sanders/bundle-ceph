@@ -1,0 +1,116 @@
+series: xenial
+services:
+  ceph-osd:
+    charm: "cs:~chris.sanders/ceph-osd-0"
+    num_units: 1
+    bindings:
+      "": home-space
+      public: home-space
+      cluster: home-space
+    options:
+      source: cloud:xenial-pike
+      autotune: True
+      bluestore: True
+      osd-shared: True
+      # osd-devices: "/dev/sda /dev/sdb /dev/sdc /dev/sdd"
+      osd-devices: ""
+      osd-reformat: "Yes"
+      osd-encrypt: False
+    to:
+      - lxd:0
+  ceph-mon:
+    charm: "cs:~chris.sanders/ceph-mon-0"
+    num_units: 1
+    expected-osd-count: 12
+    bindings:
+      "": home-space
+      public: home-space
+      cluster: home-space
+    options:
+      source: cloud:xenial-pike
+      monitor-count: 1
+      osd-failure-domain: True
+      allow-multiple-fs: True
+    to: 
+      - lxd:0
+     #- lxd:ceph-osd/0
+  replicated:
+    charm: "cs:~chris.sanders/ceph-fs-0"
+    num_units: 1
+    bindings:
+      "": home-space
+      public: home-space
+    options:
+      source: cloud:xenial-pike
+      fs-name: 'replicated'
+      pool-type: 'replicated'
+      pool-weight: 33
+      # config-flags: '{"profile":"single", "erasure-type":"isa", "k":2, "m":1, "failure-domain":"osd"}'
+      compression-mode: 'aggressive'
+      compression-algorithm: 'zlib'
+      compression-required-ratio: .45
+    to:
+      - lxd:0
+     #- lxd:ceph-osd/0
+  erasure-single:
+    charm: "cs:~chris.sanders/ceph-fs-0"
+    num_units: 2
+    bindings:
+      "": home-space
+      public: home-space
+    options:
+      source: cloud:xenial-pike
+      fs-name: 'erasure_1'
+      pool-type: 'erasure'
+      pool-weight: 33
+      config-flags: '{"profile":"single", "erasure-type":"isa", "k":2, "m":1, "failure-domain":"osd"}'
+      compression-mode: 'aggressive'
+      compression-algorithm: 'zlib'
+      compression-required-ratio: .45
+    to:
+      - lxd:0
+      - lxd:0
+     #- lxd:ceph-osd/0
+     #- lxd:ceph-osd/0
+  erasure-double:
+    charm: "cs:~chris.sanders/ceph-fs-0"
+    num_units: 1
+    bindings:
+      "": home-space
+      public: home-space
+    options:
+      source: cloud:xenial-pike
+      fs-name: 'erasure_2'
+      pool-type: 'erasure'
+      pool-weight: 33
+      config-flags: '{"profile":"double", "erasure-type":"isa", "k":2, "m":2, "failure-domain":"osd"}'
+      compression-mode: 'aggressive'
+      compression-algorithm: 'zlib'
+      compression-required-ratio: .45
+    to:
+      - lxd:0
+     #- lxd:ceph-osd/0
+  ntp:
+    charm: cs:ntp
+    # num_units: 1
+    # to:
+    #   - lxd:ubuntu/0
+  ubuntu:
+    charm: "cs:ubuntu"
+    num_units: 1
+    to:
+      - 0
+relations:
+ - - "ntp:juju-info"
+   - "ubuntu:juju-info"
+ - - "replicated:ceph-mds"
+   - "ceph-mon:mds"
+ - - "erasure-single:ceph-mds"
+   - "ceph-mon:mds"
+ - - "erasure-double:ceph-mds"
+   - "ceph-mon:mds"
+# - - "ceph-mon:osd"
+#   - "ceph-osd:mon"
+machines:
+  "0":
+    series: xenial

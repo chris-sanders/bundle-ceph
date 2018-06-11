@@ -1,0 +1,64 @@
+series: xenial
+services:
+  ceph-osd:
+    charm: "cs:~chris.sanders/ceph-osd-0"
+    num_units: 1
+    bindings:
+      "": home-space
+      public: home-space
+      cluster: home-space
+    options:
+      source: cloud:xenial-pike
+      autotune: True
+      bluestore: False
+      osd-shared: True
+      osd-devices: "/dev/sda /dev/sdb /dev/sdc /dev/sdd"
+      osd-reformat: "Yes"
+      osd-encrypt: False
+  ceph-mon:
+    charm: "cs:~chris.sanders/ceph-mon-0"
+    num_units: 1
+    expected-osd-count: 12
+    bindings:
+      "": home-space
+      public: home-space
+      cluster: home-space
+    options:
+      source: cloud:xenial-pike
+      monitor-count: 1
+      osd-failure-domain: True
+      allow-multiple-fs: True
+    to: 
+      - lxd:ceph-osd/0
+  ceph-fs:
+    charm: "cs:~chris.sanders/ceph-fs-0"
+    num_units: 2
+    bindings:
+      "": home-space
+      public: home-space
+    options:
+      source: cloud:xenial-pike
+      fs-name: 'replicated'
+      pool-type: 'replicated'
+      pool-weight: 100
+      # config-flags: '{"profile":"single", "erasure-type":"isa", "k":2, "m":1, "failure-domain":"osd"}'
+      compression-mode: 'aggressive'
+      compression-algorithm: 'zlib'
+      compression-required-ratio: .45
+    to:
+      - lxd:ceph-osd/0
+      - lxd:ceph-osd/0
+  ntp:
+    charm: cs:ntp
+  ubuntu:
+    charm: "cs:ubuntu"
+    num_units: 1
+    to:
+      - lxd:ceph-osd/0
+relations:
+ - - "ntp:juju-info"
+   - "ceph-osd:juju-info"
+ - - "ceph-mon:osd"
+   - "ceph-osd:mon"
+ - - "ceph-fs:ceph-mds"
+   - "ceph-mon:mds"
