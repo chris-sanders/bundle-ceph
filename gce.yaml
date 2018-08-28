@@ -1,0 +1,67 @@
+series: xenial
+services:
+  ceph-osd:
+    series: bionic
+    # charm: cs:ceph-osd-261
+    charm: cs:ceph-osd
+    num_units: 2
+    # constraints: "instance-type=f1-micro"
+    # constraints:
+    #   - instance-type=f1-micro
+    storage:
+      osd-devices: gce,32G,2
+    options:
+      osd-devices: "/dev/sdb /dev/sdc"
+      bluestore: False
+  ceph-osd-blue:
+    series: bionic
+    # charm: cs:ceph-osd-261
+    charm: cs:ceph-osd
+    num_units: 1
+    # constraints: "instance-type=f1-micro"
+    # constraints:
+    #   - instance-type=f1-micro
+    storage:
+      osd-devices: gce,32G,2
+    options:
+      osd-devices: "/dev/sdb /dev/sdc"
+      bluestore: True
+  ceph-mon:
+    series: bionic
+    # charm: cs:ceph-mon
+    charm: "/home/chris/src/juju/charms/nolayer/ceph-mon"
+    num_units: 1
+    constraints: "instance-type=f1-micro"
+    # constraints:
+    #   - instance-type=f1-micro
+    options:
+      monitor-count: 1
+      expected-osd-count: 3
+  ceph-fs:
+    series: bionic
+    # charm: cs:ceph-fs
+    charm: "/home/chris/src/juju/charms/builds/ceph-fs"
+    num_units: 1
+    constraints: "instance-type=f1-micro"
+    # constraints:
+    #   - instance-type=f1-micro
+    options:
+      fs-name: 'erasure'
+      pool-type: 'erasure'
+      pool-weight: 33
+      erasure-profile: "single"
+      erasure-plugin: "isa"
+      erasure-failure-domain: "osd"
+      erasure-k: 2
+      erasure-m: 1
+      # erasure-l: 3
+      compression-mode: 'aggressive'
+      compression-algorithm: 'zlib'
+      compression-required-ratio: .25
+relations:
+ - - "ceph-mon:osd"
+   - "ceph-osd:mon"
+ - - "ceph-mon:osd"
+   - "ceph-osd-blue:mon"
+ - - "ceph-fs:ceph-mds"
+   - "ceph-mon:mds"

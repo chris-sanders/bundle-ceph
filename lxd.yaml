@@ -1,0 +1,35 @@
+series: xenial
+services:
+  ceph-osd:
+    series: bionic
+    # charm: cs:ceph-osd-261
+    charm: cs:ceph-osd
+    num_units: 3
+    options:
+      osd-devices: "/srv/osd"
+      use-direct-io: False
+  ceph-mon:
+    series: bionic
+    # charm: cs:ceph-mon
+    charm: "/home/chris/src/juju/charms/nolayer/ceph-mon"
+    num_units: 1
+    options:
+      monitor-count: 1
+  ceph-fs:
+    series: bionic
+    # charm: cs:ceph-fs
+    charm: "/home/chris/src/juju/charms/builds/ceph-fs"
+    num_units: 1
+    options:
+      fs-name: 'erasure'
+      pool-type: 'erasure'
+      pool-weight: 33
+      config-flags: '{"profile":"single", "erasure-type":"isa", "k":2, "m":1, "failure-domain":"host"}'
+      compression-mode: 'aggressive'
+      compression-algorithm: 'zlib'
+      compression-required-ratio: .45
+relations:
+ - - "ceph-mon:osd"
+   - "ceph-osd:mon"
+ - - "ceph-fs:ceph-mds"
+   - "ceph-mon:mds"
